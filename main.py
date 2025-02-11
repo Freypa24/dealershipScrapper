@@ -7,6 +7,7 @@ import database
 import time
 import re
 
+
 chrome_options = Options()
 chrome_options.add_argument("--headless")                   # We don't want to see the window for the chrome driver
 
@@ -32,14 +33,14 @@ def convert_to_integer(num):
     except ValueError:
         return 0                # Failed to convert,
 
+
 def extract_car_details(url):
     driver.get(url)
     soup = BeautifulSoup(driver.page_source, 'html.parser')
     print(url)
-    #time.sleep(.2)
     car_details_div = soup.find("div", class_="parameter-info")
     if not car_details_div:
-        print("Error occured for this listing")
+        print("Error occurred for this listing")
         return
 
     discountedPrice = ""
@@ -114,5 +115,6 @@ while True:
     pageNumber += 1
 
 
+## UPDATE RECORDS
 
 driver.quit()
