@@ -4,14 +4,13 @@ from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 from bs4 import BeautifulSoup
 import database
+import webserver
 import time
 import re
 
-# Set up Chrome options (e.g., headless mode)
 chrome_options = Options()
-chrome_options.add_argument("--headless")  # Run in headless mode (without opening a browser window)
+chrome_options.add_argument("--headless")
 
-# Automatically download and use the correct version of chromedriver
 service = Service(ChromeDriverManager().install())
 
 driver = webdriver.Chrome(service=service, options=chrome_options)
@@ -21,10 +20,17 @@ driver.get("https://philkotse.com/used-cars-for-sale")
 
 soup = BeautifulSoup(driver.page_source, 'html.parser')
 links = soup.find_all("div", class_="col-4")
-main_url = "https://philkotse.com/used-cars-for-sale/p"
-car_url = "https://philkotse.com/"
-page_number = 2
+main_url = "https://philkotse.com/used-cars-for-sale/p"     # pagination links
+car_url = "https://philkotse.com/"                          # car links
+pageNumber = 2                                             # pagination number, 2 is next page after the main page
 
+def convert_to_integer(num):
+    newNum = num.replace("₱", "").replace(",", "").strip()
+
+    try:
+        return int(newNum)         # Return as an Integer
+    except ValueError:
+        return 0                # Failed to convert,
 
 def extract_car_details(url):
     driver.get(url)
@@ -36,16 +42,23 @@ def extract_car_details(url):
         print("Error occured for this listing")
         return
 
-    price_tag = " "
+    discountedPrice = ""
+    originalPrice = ""
 
     # This means that a price tag has been discounted.
     if soup.find("div", class_="new-total-pay"):
-        price_tag = car_details_div.find("div", class_="price").text.strip()  # Find the first price element
+
+        discountedPrice = car_details_div.find("div", class_="price").text.strip()  # the discounted value of a listing, if there are any
+        originalPrice = car_details_div.find("span", class_="old-price").text.strip()
+
     else:
-        price_tag = car_details_div.find("span", class_="price").text.strip()  # Find the first price element
-    print(price_tag)
+
+        originalPrice = car_details_div.find("span", class_="price").text.strip()   # the true value of the listing
+
+    print(convert_to_integer(discountedPrice))
+    print(convert_to_integer(originalPrice))
     car_details = car_details_div.find("ul", class_="list")
-    brand, model, year, status, color, transmission = "None", "None", "None", "None", "None", "None"
+    brand, model, year, status, color, transmission = "None", "None", "None", "None", "Unknown", "None"
 
     for car in car_details:
         details = car_details.find_all("li")
@@ -54,17 +67,21 @@ def extract_car_details(url):
 
             brand = details[0].text.strip()
             model = details[1].text.strip()
+
             if year == "None" and re.match(r"\d{4}", text):
-                year = text
+                year = int(text)
             elif status == "None" and text == "Used" or text == "New":
                 status = text
-            elif color == "None" and text == "Beige" or text == "Black" or text == "Blue" or text == "Brightsilver" or text == "Brown" or text == "Cream" or text == "Golden" or text == "Grayblack" or text == "Green" or text == "Grey" or text == "Orange" or text == "Pearlwhite" or text == "Pink" or text == "Purple" or text == "Red" or text == "Silver" or text == "Skyblue" or text == "White"  or text == "Yellow" or text == "Other":
+            elif color == "Unknown" and text == "Beige" or text == "Black" or text == "Blue" or text == "Brightsilver" or text == "Brown" or text == "Cream" or text == "Golden" or text == "Grayblack" or text == "Green" or text == "Grey" or text == "Orange" or text == "Pearlwhite" or text == "Pink" or text == "Purple" or text == "Red" or text == "Silver" or text == "Skyblue" or text == "White"  or text == "Yellow" or text == "Other":
                 color = text
             elif transmission == "None" and text == "Automatic" or text == "Manual":
                 transmission = text
         print(f"Brand: {brand}, Model: {model}, Year: {year}, Status: {status}, Color: {color}, transmission: {transmission}")
-        database.insert_car(brand, model, year, status, color, transmission, price_tag, url)
+
+        # Once all data regarding the car listing has been gathered, move onto the database.
+        database.insert_car(brand, model, year, status, color, transmission, convert_to_integer(discountedPrice), convert_to_integer(originalPrice), url)
         break
+
 
 
 # grab the first page's car listing
@@ -75,11 +92,12 @@ for div in links:
         extract_car_details(full_url)
 
 
-# This grabs every listing in the main page / used cars for sale page
+
+# This grabs every listing in the used cars page until it reaches the end.
 while True:
-    driver.get(f"{main_url}{page_number}")
+    driver.get(f"{main_url}{pageNumber}")
     soup = BeautifulSoup(driver.page_source, 'html.parser')
-    #time.sleep(.2)
+    time.sleep(.2)
     links = soup.find_all("div", class_="col-4")
     for div in links:
         a_tag = div.find("a")
@@ -87,9 +105,9 @@ while True:
             full_url = car_url + a_tag["href"]
             extract_car_details(full_url)
     if not links:
-        print(f"No more listings found on page {page_number}. Stopping.")
-        break  # Exit loop if no listings found
-    page_number += 1
+        print(f"No more listings found on page {pageNumber}.")
+        break
+    pageNumber += 1
 
 
 
