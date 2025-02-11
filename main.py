@@ -4,12 +4,11 @@ from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 from bs4 import BeautifulSoup
 import database
-import webserver
 import time
 import re
 
 chrome_options = Options()
-chrome_options.add_argument("--headless")
+chrome_options.add_argument("--headless")                   # We don't want to see the window for the chrome driver
 
 service = Service(ChromeDriverManager().install())
 
@@ -23,6 +22,7 @@ links = soup.find_all("div", class_="col-4")
 main_url = "https://philkotse.com/used-cars-for-sale/p"     # pagination links
 car_url = "https://philkotse.com/"                          # car links
 pageNumber = 2                                             # pagination number, 2 is next page after the main page
+
 
 def convert_to_integer(num):
     newNum = num.replace("₱", "").replace(",", "").strip()
@@ -58,8 +58,8 @@ def extract_car_details(url):
     print(convert_to_integer(discountedPrice))
     print(convert_to_integer(originalPrice))
     car_details = car_details_div.find("ul", class_="list")
-    brand, model, year, status, color, transmission = "None", "None", "None", "None", "Unknown", "None"
 
+    brand, model, year, status, color, transmission = "None", "None", "None", "None", "Unknown", "None"
     for car in car_details:
         details = car_details.find_all("li")
         for i in range(len(details)):
@@ -76,6 +76,7 @@ def extract_car_details(url):
                 color = text
             elif transmission == "None" and text == "Automatic" or text == "Manual":
                 transmission = text
+
         print(f"Brand: {brand}, Model: {model}, Year: {year}, Status: {status}, Color: {color}, transmission: {transmission}")
 
         # Once all data regarding the car listing has been gathered, move onto the database.
@@ -83,8 +84,7 @@ def extract_car_details(url):
         break
 
 
-
-# grab the first page's car listing
+# grab the first page's car listing.
 for div in links:
     a_tag = div.find("a")
     if a_tag and a_tag.get("href"):
@@ -99,11 +99,15 @@ while True:
     soup = BeautifulSoup(driver.page_source, 'html.parser')
     time.sleep(.2)
     links = soup.find_all("div", class_="col-4")
+
+    # Repeat that same process of grabbing all car listing for every available pages.
     for div in links:
         a_tag = div.find("a")
         if a_tag and a_tag.get("href"):
             full_url = car_url + a_tag["href"]
             extract_car_details(full_url)
+
+    # THIS WILL END THE SYSTEM, USE THIS AS THE ENDPOINT
     if not links:
         print(f"No more listings found on page {pageNumber}.")
         break

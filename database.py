@@ -10,7 +10,7 @@ try:
 
     curr = conn.cursor()
 except Exception as error:
-    print(f"There was an error with the connection to the database: {error}")
+    print(f"An error occurred with the connection to the database: {error}")
     exit()
 
 def check_table_exists():
@@ -25,7 +25,7 @@ def check_table_exists():
             return False
 
     except Exception as error:
-        print(f"Error checking if table exists: {error}")
+        print(f"An error occurred while checking if table exists: {error}")
 
 def create_table():
     try:
@@ -53,8 +53,13 @@ def create_table():
         print("Table created successfully")
 
     except Exception as error:
-        print(f"Error on creating table: {error}")
+        print(f"Error occurred on creating table: {error}")
 
+
+
+def end_connection():
+    curr.close()
+    conn.close()
 
 
 
@@ -92,7 +97,7 @@ def insert_car(brand, model, year, status, color, transmission, discountedPrice,
         conn.commit()
         print(f"The car of brand {brand} and model {model} has been inserted")
     except Exception as error:
-        print(f"Error inserting new car: {error}")
+        print(f"Error occurred inserting new car: {error}")
 
 
 create_table()
