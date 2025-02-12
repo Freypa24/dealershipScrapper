@@ -22,7 +22,7 @@ soup = BeautifulSoup(driver.page_source, 'html.parser')
 links = soup.find_all("div", class_="col-4")
 main_url = "https://philkotse.com/used-cars-for-sale/p"     # pagination links
 car_url = "https://philkotse.com/"                          # car links
-pageNumber = 2                                             # pagination number, 2 is next page after the main page
+pageNumber = 0                                             # pagination number, 2 is next page after the main page
 
 
 def convert_to_integer(num):
@@ -40,7 +40,7 @@ def extract_car_details(url):
     print(url)
     car_details_div = soup.find("div", class_="parameter-info")
     if not car_details_div:
-        print("Error occurred for this listing")
+        print("Error occurred for this listing, possibly delisted?")
         return
 
     discountedPrice = ""
@@ -85,34 +85,39 @@ def extract_car_details(url):
         break
 
 
-# grab the first page's car listing.
-for div in links:
-    a_tag = div.find("a")
-    if a_tag and a_tag.get("href"):
-        full_url = car_url + a_tag["href"]
-        extract_car_details(full_url)
-
-
-
 # This grabs every listing in the used cars page until it reaches the end.
 while True:
-    driver.get(f"{main_url}{pageNumber}")
-    soup = BeautifulSoup(driver.page_source, 'html.parser')
-    time.sleep(.2)
-    links = soup.find_all("div", class_="col-4")
 
-    # Repeat that same process of grabbing all car listing for every available pages.
-    for div in links:
-        a_tag = div.find("a")
-        if a_tag and a_tag.get("href"):
-            full_url = car_url + a_tag["href"]
-            extract_car_details(full_url)
+    # First Page
+    if pageNumber == 0:
+        for div in links:
+            a_tag = div.find("a")
+            if a_tag and a_tag.get("href"):
+                full_url = car_url + a_tag["href"]
+                extract_car_details(full_url)
 
-    # THIS WILL END THE SYSTEM, USE THIS AS THE ENDPOINT
-    if not links:
-        print(f"No more listings found on page {pageNumber}.")
-        break
-    pageNumber += 1
+        pageNumber = 2
+
+    # Pagination
+    else:
+
+        driver.get(f"{main_url}{pageNumber}")
+        soup = BeautifulSoup(driver.page_source, 'html.parser')
+        time.sleep(.2)
+        links = soup.find_all("div", class_="col-4")
+
+        # Repeat that same process of grabbing all car listing for every available pages.
+        for div in links:
+            a_tag = div.find("a")
+            if a_tag and a_tag.get("href"):
+                full_url = car_url + a_tag["href"]
+                extract_car_details(full_url)
+
+        # THIS WILL END THE SYSTEM, USE THIS AS THE ENDPOINT
+        if not links:
+            print(f"No more listings found on page {pageNumber}.")
+            break
+        pageNumber += 1
 
 
 ## UPDATE RECORDS

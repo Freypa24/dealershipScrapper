@@ -56,6 +56,12 @@ def get_price_range():
 
 ## SPACE FOR FURTHER API CALLS
 
+## GET_SELLER_CARS()
+
+## GET_MOST_RECENT_LISTING()
+
+##
+
 if __name__ == '__main__':
     app.run(debug=True)
 
